@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Application</title>
+</head>
+<body>
+    <div id="user-list">
+        <h3>Users</h3>
+        <ul>
+            {% for user in users %}
+            <li><a href="#" onclick="openChat('{{ user.username }}')">{{ user.username }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div id="chat-window">
+        <div id="messages"></div>
+        <input type="text" id="message-input">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        let roomName = null;
+        const socket = new WebSocket('ws://' + window.location.host + '/ws/chat/' + roomName + '/');
+
+        function openChat(username) {
+            roomName = username;
+            document.getElementById('messages').innerHTML = '';
+            fetch(`/messages/${username}/`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('messages').innerHTML = html;
+                });
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value;
+            socket.send(JSON.stringify({
+                'message': message,
+                'recipient': roomName
+            }));
+            messageInput.value = '';
+        }
+
+        socket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<p><strong>${data.sender}:</strong> ${data.message}</p>`;
+        };
+    </script>
+</body>
+</html>
